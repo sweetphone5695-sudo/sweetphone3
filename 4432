@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>행사일정표</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --archive: #64748b;
+            --product: #10b981;
+            --bg-main: #f8fafc;
+            --text-main: #0f172a;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            min-height: 100vh; 
+            background-color: var(--bg-main); 
+            padding: 1rem; 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; 
+            color: var(--text-main); 
+            line-height: 1.5; 
+        }
+        
+        .dashboard-card { 
+            max-width: 100%; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 1rem; 
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); 
+            overflow: hidden; 
+            border: 1px solid var(--border); 
+        }
+        
+        .admin-header { 
+            background: #0f172a; 
+            color: white; 
+            padding: 1.25rem 1.5rem; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #334155; 
+        }
+        .header-title-box { display: flex; align-items: center; gap: 0.75rem; }
+        .header-icon-bg { background: var(--primary); padding: 0.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; }
+        .header-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; }
+        
+        .nav-tabs { display: flex; background: #1e293b; padding: 0.2rem; border-radius: 0.75rem; border: 1px solid #334155; gap: 0.2rem; }
+        .tab-button { 
+            padding: 0.5rem 1rem; 
+            border-radius: 0.5rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.4rem; 
+            transition: all 0.2s; 
+            font-weight: 700; 
+            font-size: 0.813rem; 
+            border: none; 
+            cursor: pointer; 
+            color: #94a3b8; 
+            background: transparent; 
+            white-space: nowrap;
+        }
+        .tab-button:hover { color: white; background: rgba(255,255,255,0.05); }
+        .tab-button.active { background: var(--primary); color: white; }
+        .tab-button.product-tab.active { background: var(--product); }
+        .tab-button.archive-tab.active { background: var(--archive); }
+
+        .content-area { padding: 1.5rem; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+        .title-group h2 { font-size: 1.125rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+        .action-group { display: flex; align-items: center; gap: 0.5rem; }
+        
+        .btn { border-radius: 0.4rem; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; gap: 0.3rem; transition: all 0.2s; font-size: 0.75rem; padding: 0.5rem 0.8rem; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-add:hover { background: var(--primary-dark); }
+        .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+        .btn-delete:hover { background: #fee2e2; }
+        .btn-product { background: var(--product); color: white; }
+        .btn-cancel { background: #f1f5f9; color: #64748b; }
+
+        .table-container { overflow-x: auto; border-radius: 0.5rem; border: 1px solid var(--border); background: #f8fafc; }
+        .event-table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 1300px; background: white; }
+        .event-table th { background: #f8fafc; color: #64748b; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.8rem; border-bottom: 1px solid var(--border); text-align: left; }
+        .event-table td { padding: 0.3rem; border-bottom: 1px solid #f1f5f9; }
+        
+        .input-field { width: 100%; padding: 0.4rem; background: transparent; border: 1px solid transparent; border-radius: 0.3rem; font-size: 0.813rem; outline: none; }
+        .input-field:hover { border-color: #e2e8f0; background: #fff; }
+        .input-field:focus { background: white; border-color: var(--primary); }
+        .input-bold { font-weight: 700; color: #1e293b; }
+        .input-mono { font-family: monospace; font-size: 11px; color: #64748b; }
+        .input-price { color: var(--primary); font-weight: 700; text-align: right; }
+        .input-revenue { color: #059669; font-weight: 700; text-align: right; }
+        
+        /* Modal Style */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.6); display: none; 
+            justify-content: center; align-items: center; z-index: 20000; 
+            backdrop-filter: blur(4px);
+        }
+        .modal-card { 
+            background: white; width: 500px; border-radius: 1rem; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; 
+            animation: modalFade 0.2s ease-out;
+        }
+        @keyframes modalFade { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { background: #0f172a; color: white; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .modal-footer { padding: 1.25rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 0.5rem; background: #f8fafc; }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-label { font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
+        .form-input { 
+            padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.4rem; 
+            font-size: 0.875rem; outline: none; font-family: inherit;
+        }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* Pastel Palette Buttons */
+        .pastel-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+        .pastel-btn { 
+            height: 30px; border-radius: 0.3rem; border: 2px solid transparent; 
+            cursor: pointer; transition: all 0.2s; 
+        }
+        .pastel-btn:hover { transform: scale(1.1); }
+        .pastel-btn.active { border-color: #0f172a; }
+
+        /* Calendar UI */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .calendar-title { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.04em; color: var(--text-main); }
+        .calendar-title span { color: var(--primary); }
+        .calendar-controls { display: flex; gap: 0.4rem; background: #f1f5f9; padding: 0.25rem; border-radius: 0.6rem; }
+        .btn-cal-nav { background: transparent; border: none; cursor: pointer; padding: 0.3rem; border-radius: 0.4rem; display: flex; align-items: center; }
+        .btn-cal-nav:hover { background: white; }
+        .btn-today { background: white; border: none; padding: 0.3rem 1rem; border-radius: 0.4rem; font-weight: 700; cursor: pointer; font-size: 0.75rem; }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 1rem; overflow: hidden; border: 1px solid var(--border); }
+        .calendar-day-label { background: #f8fafc; padding: 0.75rem; text-align: center; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+        .calendar-cell { background: white; min-height: 120px; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
+        .day-number { font-size: 0.875rem; font-weight: 800; color: #e2e8f0; }
+        .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); display: none; }
+        .has-events .dot { display: block; }
+        
+        .event-bar { font-size: 9px; color: #0f172a; padding: 0.3rem 0.5rem; border-radius: 0.3rem; font-weight: 700; border-left: 2.5px solid rgba(0,0,0,0.1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        #toast-container { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 30000; }
+        .toast { background: #1e293b; color: white; padding: 0.6rem 1.2rem; border-radius: 0.4rem; font-weight: 700; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 3px solid #ef4444; }
+
+        .admin-footer { padding: 1.25rem; text-align: center; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; color: #94a3b8; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- Event Add Modal -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 style="font-weight: 900; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="plus-circle" size="20"></i> 신규 행사 일정 등록
+            </h3>
+            <button onclick="closeModal()" style="background:transparent; border:none; color:white; cursor:pointer;"><i data-lucide="x" size="20"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">스토어명</label>
+                <input type="text" id="m-store" list="store-list" class="form-input" placeholder="스토어 선택 또는 입력">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">상품명</label>
+                    <input type="text" id="m-product" list="product-db-list" class="form-input" onchange="syncProductId(this.value)" placeholder="상품 검색">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">상품 ID</label>
+                    <input type="text" id="m-productId" class="form-input" placeholder="자동 입력됨">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">재고수량</label>
+                    <input type="number" id="m-stock" class="form-input" value="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">행사가격</label>
+                    <input type="number" id="m-price" class="form-input" value="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">예상 매출액</label>
+                <input type="number" id="m-revenue" class="form-input" value="0">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">시작일</label>
+                    <input type="date" id="m-start" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">종료일</label>
+                    <input type="date" id="m-end" class="form-input">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">파스텔 색상 선택</label>
+                <div class="pastel-grid" id="pastel-palette"></div>
+                <input type="color" id="m-color" class="form-input" style="height: 35px; padding: 2px; margin-top: 5px;" value="#FFB3BA">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeModal()">취소</button>
+            <button class="btn btn-add" onclick="saveNewEvent()">일정 저장</button>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-card">
+    <header class="admin-header">
+        <div class="header-title-box">
+            <div class="header-icon-bg"><i data-lucide="calendar-range"></i></div>
+            <h1 class="header-title">행사일정표</h1>
+        </div>
+        <nav class="nav-tabs">
+            <button class="tab-button active" onclick="switchTab('input')" id="tab-input"><i data-lucide="list"></i> 진행 행사</button>
+            <button class="tab-button" onclick="switchTab('calendar')" id="tab-calendar"><i data-lucide="calendar-days"></i> 캘린더</button>
+            <button class="tab-button product-tab" onclick="switchTab('products')" id="tab-products"><i data-lucide="package"></i> 상품 등록</button>
+            <button class="tab-button archive-tab" onclick="switchTab('archive')" id="tab-archive"><i data-lucide="history"></i> 이전 행사 일정</button>
+        </nav>
+    </header>
+
+    <main class="content-area" id="main-content"></main>
+
+    <footer class="admin-footer">
+        <p>© 2026 EVENT ADMIN | CEO DASHBOARD</p>
+        <div><span>GITHUB HOSTING READY</span></div>
+    </footer>
+</div>
+
+<datalist id="store-list"></datalist>
+<datalist id="product-db-list"></datalist>
+
+<script>
+    // 오늘 날짜 연동
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 파스텔 팔레트 정의 (빨주노초파남보)
+    const pastelPalette = [
+        { name: 'Red', color: '#FFB3BA' },
+        { name: 'Orange', color: '#FFDFBA' },
+        { name: 'Yellow', color: '#FFFFBA' },
+        { name: 'Green', color: '#BAFFB2' },
+        { name: 'Blue', color: '#BAE1FF' },
+        { name: 'Indigo', color: '#A0CED9' },
+        { name: 'Violet', color: '#D4B5FF' }
+    ];
+
+    let events = [
+        { id: 1, store: '토스 달고나폰', productId: 'T01', product: '진공냄비', stock: 200, price: 39000, revenue: 1000000, start: '2026-05-03', end: '2026-05-05', color: '#FFB3BA', isDeleted: false },
+        { id: 2, store: '토스 폰박스', productId: 'B01', product: '가열도시락', stock: 150, price: 45000, revenue: 500000, start: '2026-05-01', end: '2026-05-10', color: '#BAE1FF', isDeleted: false },
+        { id: 3, store: '올웨이즈 달고나폰', productId: 'A01', product: '에어슬림', stock: 300, price: 15000, revenue: 2000000, start: '2026-05-04', end: '2026-05-08', color: '#BAFFB2', isDeleted: false }
+    ];
+
+    let productsDB = [
+        { id: 1, productId: 'T01', productName: '진공냄비', category: '주방가전', basePrice: 40000 },
+        { id: 2, productId: 'B01', productName: '가열도시락', category: '생활용품', basePrice: 50000 }
+    ];
+
+    let activeTab = 'input';
+    let currentDate = new Date();
+    let sortConfig = { key: 'start', direction: 'asc' };
+    let selectedIds = [];
+
+    function showToast(msg) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<i data-lucide="alert-circle" size="16"></i><span>${msg}</span>`;
+        container.appendChild(toast);
+        lucide.createIcons();
+        setTimeout(() => toast.remove(), 2500);
+    }
+
+    // Modal Controls
+    function openAddModal() {
+        document.getElementById('modal-overlay').style.display = 'flex';
+        document.getElementById('m-start').value = todayStr;
+        document.getElementById('m-end').value = todayStr;
+        document.getElementById('m-store').value = '';
+        document.getElementById('m-product').value = '';
+        document.getElementById('m-productId').value = '';
+        document.getElementById('m-stock').value = 0;
+        document.getElementById('m-price').value = 0;
+        document.getElementById('m-revenue').value = 0;
+        
+        const paletteContainer = document.getElementById('pastel-palette');
+        paletteContainer.innerHTML = pastelPalette.map(p => `
+            <button class="pastel-btn" style="background:${p.color}" onclick="selectPastelColor('${p.color}', this)"></button>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function selectPastelColor(color, btn) {
+        document.getElementById('m-color').value = color;
+        document.querySelectorAll('.pastel-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+    function syncProductId(productName) {
+        const master = productsDB.find(p => p.productName === productName);
+        if (master) document.getElementById('m-productId').value = master.productId;
+    }
+
+    function saveNewEvent() {
+        const store = document.getElementById('m-store').value;
+        const product = document.getElementById('m-product').value;
+        const productId = document.getElementById('m-productId').value;
+        const stock = +document.getElementById('m-stock').value;
+        const price = +document.getElementById('m-price').value;
+        const revenue = +document.getElementById('m-revenue').value;
+        const start = document.getElementById('m-start').value;
+        const end = document.getElementById('m-end').value;
+        const color = document.getElementById('m-color').value;
+
+        if (!store || !product) { showToast('정보를 입력해주세요.'); return; }
+        if (new Date(start) > new Date(end)) { showToast('시작일 오류'); return; }
+
+        events.push({ 
+            id: Date.now(), store, productId, product, 
+            stock, price, revenue, start, end, color, isDeleted: false 
+        });
+
+        closeModal();
+        render();
+    }
+
+    function switchTab(tab) {
+        activeTab = tab;
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        selectedIds = [];
+        render();
+    }
+
+    function render() {
+        const storeDatalist = document.getElementById('store-list');
+        const productDatalist = document.getElementById('product-db-list');
+        storeDatalist.innerHTML = [...new Set(events.map(ev => ev.store))].filter(s => s).map(s => `<option value="${s}">`).join('');
+        productDatalist.innerHTML = productsDB.map(p => `<option value="${p.productName}">${p.productId}</option>`).join('');
+
+        const main = document.getElementById('main-content');
+        const existingTableContainer = document.querySelector('.table-container');
+        let tableScrollLeft = existingTableContainer ? existingTableContainer.scrollLeft : 0;
+
+        main.innerHTML = '';
+        if (activeTab === 'calendar') renderCalendar(main);
+        else if (activeTab === 'products') renderProductDB(main);
+        else renderTable(main);
+        
+        lucide.createIcons();
+        const newTableContainer = document.querySelector('.table-container');
+        if (newTableContainer) newTableContainer.scrollLeft = tableScrollLeft;
+    }
+
+    function updateEvent(id, field, value) {
+        const idx = events.findIndex(ev => ev.id === id);
+        if (field === 'start' && events[idx].end && new Date(value) > new Date(events[idx].end)) { showToast('시작일 오류'); render(); return; }
+        if (field === 'end' && events[idx].start && new Date(value) < new Date(events[idx].start)) { showToast('종료일 오류'); render(); return; }
+        events[idx][field] = value;
+        render();
+    }
+
+    function toggleArchive(id) {
+        const idx = events.findIndex(ev => ev.id === id);
+        events[idx].isDeleted = !events[idx].isDeleted;
+        showToast(events[idx].isDeleted ? '행사가 보관되었습니다.' : '행사가 복구되었습니다.');
+        render();
+    }
+
+    function permanentDelete(id) {
+        if (confirm('이 행사를 영구적으로 삭제하시겠습니까?')) {
+            events = events.filter(ev => ev.id !== id);
+            render();
+        }
+    }
+
+    function deleteSelected() {
+        if (activeTab === 'products') productsDB = productsDB.filter(p => !selectedIds.includes(p.id));
+        else if (activeTab === 'archive') {
+            if (confirm('선택한 항목들을 영구 삭제하시겠습니까?')) events = events.filter(e => !selectedIds.includes(e.id));
+        } else {
+            events.forEach(e => { if (selectedIds.includes(e.id)) e.isDeleted = true; });
+        }
+        selectedIds = []; render();
+    }
+
+    function renderTable(container) {
+        const isArchive = activeTab === 'archive';
+        const targetList = events.filter(e => isArchive ? (e.isDeleted || e.end < todayStr) : (!e.isDeleted && e.end >= todayStr));
+        const sorted = targetList.sort((a,b) => {
+            let av = a[sortConfig.key], bv = b[sortConfig.key];
+            let dir = sortConfig.direction === 'asc' ? 1 : -1;
+            return av > bv ? dir : (av < bv ? -dir : 0);
+        });
+        const fIds = sorted.map(e => e.id);
+        
+        container.innerHTML = `
+            <div class="section-header">
+                <div class="title-group"><h2><i data-lucide="${isArchive?'history':'layout-list'}"></i> ${isArchive ? '이전 행사 일정 내역' : '진행 행사 리스트'}</h2></div>
+                <div class="action-group">
+                    ${selectedIds.length > 0 ? `<button class="btn btn-delete" onclick="deleteSelected()"><i data-lucide="trash-2"></i> ${selectedIds.length}개 삭제</button>` : ''}
+                    ${!isArchive ? `<button class="btn btn-add" onclick="openAddModal()"><i data-lucide="plus"></i> 신규 등록</button>` : ''}
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="event-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;text-align:center"><button onclick='selectedIds=selectedIds.length===${fIds.length}?[]:[...${JSON.stringify(fIds)}];render()' style="background:none;border:none;cursor:pointer;"><i data-lucide="${selectedIds.length===fIds.length?'check-square':'square'}"></i></button></th>
+                            <th style="width:160px">스토어</th><th style="width:100px">ID</th><th style="width:140px">상품명</th>
+                            <th style="width:80px;text-align:right">재고</th><th style="width:100px;text-align:right">가격</th><th style="width:110px;text-align:right">매출</th>
+                            <th style="width:130px">시작일</th><th style="width:130px">종료일</th><th style="width:60px">색상</th><th style="width:100px;text-align:center">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map(ev => `
+                            <tr class="${selectedIds.includes(ev.id) ? 'row-selected' : ''}">
+                                <td style="text-align:center"><button onclick="const s=selectedIds.includes(${ev.id})?selectedIds.filter(i=>i!==${ev.id}):[...selectedIds,${ev.id}];selectedIds=s;render()" style="background:none;border:none;cursor:pointer;"><i data-lucide="${selectedIds.includes(ev.id)?'check-square':'square'}"></i></button></td>
+                                <td><input value="${ev.store}" list="store-list" onchange="updateEvent(${ev.id},'store',this.value)" class="input-field font-medium"></td>
+                                <td><input value="${ev.productId}" onchange="updateEvent(${ev.id},'productId',this.value)" class="input-field input-mono"></td>
+                                <td><input value="${ev.product}" list="product-db-list" onchange="updateEvent(${ev.id},'product',this.value)" class="input-field input-bold"></td>
+                                <td><input type="number" value="${ev.stock}" onchange="updateEvent(${ev.id},'stock',+this.value)" class="input-field text-right"></td>
+                                <td><input type="number" value="${ev.price}" onchange="updateEvent(${ev.id},'price',+this.value)" class="input-field input-price"></td>
+                                <td><input type="number" value="${ev.revenue}" onchange="updateEvent(${ev.id},'revenue',+this.value)" class="input-field input-revenue"></td>
+                                <td><input type="date" value="${ev.start}" onchange="updateEvent(${ev.id},'start',this.value)" class="input-field input-mono"></td>
+                                <td><input type="date" value="${ev.end}" onchange="updateEvent(${ev.id},'end',this.value)" class="input-field input-mono"></td>
+                                <td style="text-align:center"><input type="color" value="${ev.color}" oninput="updateEvent(${ev.id},'color',this.value)" style="width:20px;height:20px;border:none;cursor:pointer"></td>
+                                <td style="text-align:center">
+                                    <div style="display:flex;gap:8px;justify-content:center">
+                                        <button onclick="toggleArchive(${ev.id})" style="background:none;border:none;cursor:pointer;color:${isArchive?'#10b981':'#94a3b8'}" title="${isArchive?'되살리기':'보관'}"><i data-lucide="${isArchive?'rotate-ccw':'archive'}" size="18"></i></button>
+                                        <button onclick="permanentDelete(${ev.id})" style="background:none;border:none;cursor:pointer;color:#ef4444" title="삭제"><i data-lucide="trash-2" size="18"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function renderProductDB(container) {
+        const fIds = productsDB.map(p => p.id);
+        container.innerHTML = `
+            <div class="section-header">
+                <div class="title-group"><h2><i data-lucide="package"></i> 상품 마스터 DB</h2></div>
+                <div class="action-group">
+                    ${selectedIds.length > 0 ? `<button class="btn btn-delete" onclick="deleteSelected()"><i data-lucide="trash-2"></i> 삭제</button>` : ''}
+                    <button class="btn btn-product" onclick="productsDB.push({id:Date.now(),productId:'P'+Date.now(),productName:'새상품',category:'',basePrice:0});render()"><i data-lucide="plus"></i> 상품 추가</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="event-table">
+                    <thead><tr><th style="width:40px"></th><th style="width:150px">ID</th><th>상품명</th><th style="width:200px">카테고리</th><th style="width:150px">기준가</th></tr></thead>
+                    <tbody>${productsDB.map(p => `<tr><td style="text-align:center"><button onclick="selectedIds=selectedIds.includes(${p.id})?selectedIds.filter(i=>i!==${p.id}):[...selectedIds,${p.id}];render()" style="background:none;border:none;cursor:pointer;"><i data-lucide="${selectedIds.includes(p.id)?'check-square':'square'}"></i></button></td><td><input value="${p.productId}" onchange="const idx=productsDB.findIndex(x=>x.id===${p.id});productsDB[idx].productId=this.value;render()" class="input-field"></td><td><input value="${p.productName}" onchange="const idx=productsDB.findIndex(x=>x.id===${p.id});productsDB[idx].productName=this.value;render()" class="input-field font-bold"></td><td><input value="${p.category}" onchange="const idx=productsDB.findIndex(x=>x.id===${p.id});productsDB[idx].category=this.value;render()" class="input-field"></td><td><input type="number" value="${p.basePrice}" onchange="const idx=productsDB.findIndex(x=>x.id===${p.id});productsDB[idx].basePrice=+this.value;render()" class="input-field text-right"></td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function renderCalendar(container) {
+        const year = currentDate.getFullYear(), month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month+1, 0).getDate();
+        const days = [];
+        for(let i=0; i<firstDay; i++) days.push({day:null});
+        for(let i=1; i<=daysInMonth; i++) days.push({day:i, dateStr:`${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`});
+        
+        container.innerHTML = `
+            <div class="calendar-header">
+                <h2 class="calendar-title">${year} <span>.</span> ${month+1}</h2>
+                <div class="calendar-controls">
+                    <button onclick="currentDate.setMonth(currentDate.getMonth()-1);render()" class="btn-cal-nav"><i data-lucide="chevron-left"></i></button>
+                    <button onclick="currentDate=new Date();render()" class="btn-today">오늘</button>
+                    <button onclick="currentDate.setMonth(currentDate.getMonth()+1);render()" class="btn-cal-nav"><i data-lucide="chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="calendar-grid">
+                ${['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<div class="calendar-day-label">${d}</div>`).join('')}
+                ${days.map(d => {
+                    const dayEvs = events.filter(e => !e.isDeleted && d.dateStr && d.dateStr >= e.start && d.dateStr <= e.end);
+                    return `<div class="calendar-cell">
+                        <div style="display:flex;justify-content:space-between"><span class="day-number">${d.day||''}</span>${dayEvs.length>0?'<div class="dot"></div>':''}</div>
+                        ${dayEvs.map(e => `<div class="event-bar" style="background:${e.color}">${e.product}</div>`).join('')}
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    window.onload = render;
+</script>
+</body>
+</html>
